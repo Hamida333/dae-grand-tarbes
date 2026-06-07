@@ -1,1 +1,1 @@
-{ "version": 2, "routes": [ { "src": "/api/(.*)", "dest": "/api/$1" }, { "src": "/admin/(.*)", "dest": "/admin/$1" }, { "src": "/admin", "dest": "/admin/index.html" }, { "src": "/(.*)", "dest": "/public/$1" } ] }
+{"version":2,"routes":[{"src":"/api/(.*)","dest":"/api/$1"},{"src":"/admin","dest":"/admin.html"},{"src":"/admin/","dest":"/admin.html"},{"src":"/(.*)","dest":"/index.html"}]}
