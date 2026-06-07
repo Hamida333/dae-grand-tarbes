@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>DAE Grand Tarbes — Carte collaborative</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;width:100%}
+body{font-family:'Outfit',sans-serif;background:#f5f4f0;color:#1a1917;display:flex;flex-direction:column;height:100dvh;overflow:hidden}
+:root{
+  --red:#e63946;--red-d:#c1121f;--red-p:#fff0f1;
+  --green:#2d9e5f;--green-p:#edfaf3;
+  --orange:#e07c24;--orange-p:#fff8ee;
+  --blue:#1565c0;--blue-p:#e8f1fb;
+  --bg:#f5f4f0;--white:#fff;--line:#e8e6e0;
+  --text:#1a1917;--muted:#7a7870;--light:#b0aea8;
+  --r:12px;--shadow:0 2px 12px rgba(0,0,0,.09);--shadow-lg:0 8px 32px rgba(0,0,0,.14)
+}
+
+/* HEADER */
+header{background:#1a1917;color:#fff;height:54px;padding:0 16px;display:flex;align-items:center;gap:12px;flex-shrink:0;z-index:900}
+.logo{width:32px;height:32px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;animation:hbeat 1.8s ease-in-out infinite}
+@keyframes hbeat{0%,100%{box-shadow:0 0 0 0 rgba(230,57,70,.5)}50%{box-shadow:0 0 0 7px rgba(230,57,70,0)}}
+.logo svg{width:17px;height:17px;fill:#fff}
+.h-title{font-size:15px;font-weight:600;letter-spacing:-.3px}
+.h-sub{font-size:10px;color:rgba(255,255,255,.4);font-family:'Space Mono',monospace}
+.h-right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.btn-sos{background:var(--red);color:#fff;border:none;border-radius:18px;padding:7px 13px;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;transition:background .15s}
+.btn-sos:hover{background:var(--red-d)}
+.btn-sos svg{width:13px;height:13px;fill:#fff}
+.btn-admin{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:18px;padding:6px 12px;font-family:'Outfit',sans-serif;font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap;transition:background .15s}
+.btn-admin:hover{background:rgba(255,255,255,.2)}
+
+/* STATS */
+.stats{background:var(--white);border-bottom:1px solid var(--line);padding:6px 16px;display:flex;gap:18px;align-items:center;flex-shrink:0;overflow-x:auto}
+.stat{display:flex;align-items:center;gap:7px;white-space:nowrap}
+.dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.dot.g{background:var(--green)}.dot.r{background:var(--red)}.dot.o{background:var(--orange)}
+.stat-lbl{font-size:11px;color:var(--muted)}.stat-n{font-size:12px;font-weight:600;font-family:'Space Mono',monospace}
+.stat-sep{width:1px;height:18px;background:var(--line)}
+.collab-badge{margin-left:auto;background:var(--blue-p);color:var(--blue);border-radius:8px;padding:3px 10px;font-size:11px;font-weight:600;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.collab-badge svg{width:12px;height:12px;fill:var(--blue)}
+
+/* LAYOUT */
+.layout{display:flex;flex:1;overflow:hidden;position:relative}
+
+/* SIDEBAR */
+.sidebar{width:300px;min-width:300px;background:var(--white);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden;z-index:400;transition:transform .3s ease}
+.search-wrap{padding:10px 12px 8px;border-bottom:1px solid var(--line)}
+.sbox{display:flex;align-items:center;gap:7px;background:var(--bg);border-radius:9px;padding:8px 11px;border:1.5px solid transparent;transition:border-color .15s,background .15s}
+.sbox:focus-within{border-color:var(--red);background:var(--white)}
+.sbox svg{width:14px;height:14px;fill:var(--light);flex-shrink:0}
+.sbox input{background:none;border:none;outline:none;font-family:'Outfit',sans-serif;font-size:13px;color:var(--text);width:100%}
+.sbox input::placeholder{color:var(--light)}
+
+.filters{padding:8px 12px;display:flex;gap:5px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+.fb{font-family:'Outfit',sans-serif;font-size:11px;font-weight:500;border:1.5px solid var(--line);background:var(--white);border-radius:16px;padding:4px 10px;cursor:pointer;transition:all .12s;color:var(--muted)}
+.fb.on{border-color:var(--red);color:var(--red);background:var(--red-p)}
+.fb:hover:not(.on){border-color:var(--muted);color:var(--text)}
+
+.dae-list{flex:1;overflow-y:auto;overscroll-behavior:contain}
+.dae-list::-webkit-scrollbar{width:3px}
+.dae-list::-webkit-scrollbar-thumb{background:var(--line);border-radius:2px}
+
+.dae-item{padding:11px 13px;border-bottom:1px solid var(--line);cursor:pointer;display:flex;gap:10px;align-items:flex-start;transition:background .1s}
+.dae-item:hover{background:#fafaf8}
+.dae-item.active{background:var(--red-p);border-left:3px solid var(--red)}
+.dae-item.pending{opacity:.7;border-left:3px solid var(--orange)}
+.di-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.di-icon.g{background:var(--green-p)}.di-icon.r{background:var(--red-p)}.di-icon.o{background:var(--orange-p)}
+.di-body{flex:1;min-width:0}
+.di-name{font-size:12px;font-weight:600;color:var(--text);line-height:1.3}
+.di-addr{font-size:11px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.di-foot{display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap}
+.tag{font-size:10px;font-weight:500;padding:2px 7px;border-radius:8px}
+.tag.g{background:var(--green-p);color:var(--green)}
+.tag.r{background:var(--red-p);color:var(--red)}
+.tag.o{background:var(--orange-p);color:var(--orange)}
+.tag.pending{background:#fff3e0;color:#e65100}
+.tag.contrib{background:var(--blue-p);color:var(--blue)}
+
+.sb-foot{padding:10px 12px;border-top:1px solid var(--line);background:var(--bg);display:flex;flex-direction:column;gap:7px}
+.btn-add{width:100%;background:var(--text);color:var(--white);border:none;border-radius:9px;padding:10px;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:background .15s}
+.btn-add:hover{background:#333}
+.btn-add svg{width:14px;height:14px;fill:var(--white)}
+.btn-edit-mode{width:100%;background:var(--white);color:var(--blue);border:1.5px solid var(--blue);border-radius:9px;padding:9px;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .15s}
+.btn-edit-mode:hover{background:var(--blue-p)}
+.btn-edit-mode.active{background:var(--blue);color:#fff}
+.btn-edit-mode svg{width:14px;height:14px}
+
+/* MAP */
+.map-wrap{flex:1;position:relative}
+#map{width:100%;height:100%}
+.btn-locate{position:absolute;bottom:80px;right:12px;z-index:500;background:var(--white);border:none;border-radius:9px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:var(--shadow);transition:background .12s}
+.btn-locate:hover{background:var(--bg)}
+.btn-locate svg{width:17px;height:17px;fill:var(--muted)}
+.edit-banner{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:500;background:#1565c0;color:#fff;border-radius:10px;padding:8px 16px;font-size:12px;font-weight:600;display:none;align-items:center;gap:8px;box-shadow:var(--shadow-lg);white-space:nowrap}
+.edit-banner.show{display:flex}
+.edit-banner svg{width:15px;height:15px;fill:#fff}
+.btn-tog{position:absolute;top:10px;left:10px;z-index:500;display:none;background:var(--white);border:none;border-radius:9px;width:38px;height:38px;align-items:center;justify-content:center;cursor:pointer;box-shadow:var(--shadow)}
+.btn-tog svg{width:18px;height:18px;fill:var(--text)}
+
+/* POPUP */
+.leaflet-popup-content-wrapper{border-radius:var(--r)!important;box-shadow:var(--shadow-lg)!important;padding:0!important;overflow:hidden}
+.leaflet-popup-content{margin:0!important;width:260px!important}
+.leaflet-popup-tip-container{display:none}
+.pc{font-family:'Outfit',sans-serif}
+.pc-head{padding:12px 14px 10px;border-bottom:1px solid var(--line);display:flex;gap:9px;align-items:flex-start}
+.pc-em{font-size:22px;line-height:1}
+.pc-ttl{font-size:13px;font-weight:600;color:var(--text);line-height:1.3}
+.pc-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.pc-body{padding:10px 14px}
+.pc-row{display:flex;align-items:flex-start;gap:7px;font-size:11px;color:var(--muted);margin-bottom:5px;line-height:1.4}
+.pc-row svg{width:13px;height:13px;fill:var(--light);flex-shrink:0;margin-top:1px}
+.pc-row strong{color:var(--text);font-weight:500}
+.pc-tag{display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:8px;margin-top:3px}
+.pc-tag.g{background:var(--green-p);color:var(--green)}
+.pc-tag.r{background:var(--red-p);color:var(--red)}
+.pc-tag.o{background:var(--orange-p);color:var(--orange)}
+.pc-tag.pending{background:#fff3e0;color:#e65100}
+.pc-acts{display:flex;gap:7px;padding:0 14px 12px;flex-wrap:wrap}
+.pc-nav{flex:1;background:var(--red);color:#fff;border:none;border-radius:8px;padding:8px;font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:background .12s}
+.pc-nav:hover{background:var(--red-d)}
+.pc-nav svg{width:12px;height:12px;fill:#fff}
+.pc-edit{background:var(--blue-p);color:var(--blue);border:none;border-radius:8px;padding:8px 10px;font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;cursor:pointer;transition:background .12s}
+.pc-edit:hover{background:#d0e4f5}
+.pc-sec{background:var(--bg);color:var(--text);border:none;border-radius:8px;padding:8px 10px;font-family:'Outfit',sans-serif;font-size:11px;font-weight:500;cursor:pointer;transition:background .12s}
+.pc-sec:hover{background:var(--line)}
+
+/* MODALS */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
+.overlay.show{display:flex}
+.mcard{background:var(--white);border-radius:18px;padding:24px;max-width:400px;width:94%;box-shadow:var(--shadow-lg);animation:mup .2s ease;max-height:92dvh;overflow-y:auto}
+@keyframes mup{from{transform:translateY(16px);opacity:0}to{transform:none;opacity:1}}
+.m-head{margin-bottom:16px}
+.m-head h2{font-size:17px;font-weight:700}
+.m-head p{font-size:12px;color:var(--muted);margin-top:3px}
+.m-ico{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 10px}
+.m-ico svg{width:26px;height:26px;fill:#fff}
+.mhead-center{text-align:center;margin-bottom:18px}
+
+label{font-size:12px;font-weight:500;display:block;margin-bottom:3px;margin-top:11px;color:var(--text)}
+input[type=text],input[type=email],select,textarea{width:100%;border:1.5px solid var(--line);border-radius:8px;padding:8px 11px;font-family:'Outfit',sans-serif;font-size:13px;color:var(--text);background:var(--white);outline:none;transition:border-color .12s}
+input:focus,select:focus,textarea:focus{border-color:var(--red)}
+textarea{resize:none;height:68px}
+.frow{display:flex;gap:8px}
+.frow>*{flex:1}
+
+/* Correction form special */
+.correction-form{background:var(--bg);border-radius:10px;padding:14px;margin:10px 0}
+.correction-form h4{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.field-compare{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+.field-compare label{margin-top:0;font-size:11px;color:var(--muted)}
+.field-current{background:var(--red-p);border:1px solid rgba(230,57,70,.2);border-radius:6px;padding:7px 10px;font-size:12px;color:var(--red-d);display:flex;align-items:center;gap:6px}
+.field-current svg{width:12px;height:12px;fill:var(--red-d);flex-shrink:0}
+.arrow-down{text-align:center;font-size:16px;color:var(--light);margin:2px 0}
+
+.mfoot{display:flex;flex-direction:column;gap:7px;margin-top:14px}
+.btn-primary{background:var(--red);color:#fff;border:none;border-radius:10px;padding:12px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;cursor:pointer;width:100%;display:flex;align-items:center;justify-content:center;gap:7px;transition:background .15s}
+.btn-primary:hover{background:var(--red-d)}
+.btn-primary svg{width:15px;height:15px;fill:#fff}
+.btn-primary.green{background:var(--green)}
+.btn-primary.green:hover{background:#1e7a47}
+.btn-primary.blue{background:var(--blue)}
+.btn-primary.blue:hover{background:#0d47a1}
+.btn-cls{background:var(--bg);color:var(--muted);border:none;border-radius:10px;padding:10px;font-family:'Outfit',sans-serif;font-size:13px;cursor:pointer;width:100%;transition:background .12s}
+.btn-cls:hover{background:var(--line)}
+
+/* Steps urgence */
+.steps{display:flex;flex-direction:column;gap:7px;margin-bottom:16px}
+.step{display:flex;align-items:flex-start;gap:10px;background:var(--bg);border-radius:9px;padding:10px 12px}
+.snum{width:24px;height:24px;border-radius:50%;background:var(--red);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.stxt{font-size:12px;font-weight:500;line-height:1.4}
+.stxt small{color:var(--muted);font-weight:400;font-size:11px;display:block;margin-top:2px}
+
+/* Airtable config */
+.config-box{background:var(--bg);border-radius:10px;padding:14px;margin:10px 0}
+.config-box h4{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.config-status{display:flex;align-items:center;gap:8px;font-size:12px;padding:8px 10px;border-radius:7px;margin-top:8px}
+.config-status.ok{background:var(--green-p);color:var(--green)}
+.config-status.err{background:var(--red-p);color:var(--red)}
+.config-status.warn{background:var(--orange-p);color:var(--orange)}
+.config-status svg{width:13px;height:13px;fill:currentColor}
+
+/* Toast */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(70px);background:#1a1917;color:#fff;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:500;z-index:9999;transition:transform .28s ease;display:flex;align-items:center;gap:7px;white-space:nowrap;max-width:90vw}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast svg{width:14px;height:14px;fill:var(--green);flex-shrink:0}
+.toast.warn svg{fill:var(--orange)}
+.toast.err svg{fill:var(--red)}
+
+/* Leaflet */
+.leaflet-control-zoom{border:none!important;box-shadow:var(--shadow)!important}
+.leaflet-control-zoom a{border-radius:8px!important;border:1px solid var(--line)!important;color:var(--text)!important}
+.leaflet-control-attribution{font-size:9px!important}
+
+/* Pending corrections counter */
+.pending-badge{background:var(--orange);color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;margin-left:4px}
+
+/* Drag hint on map */
+.drag-hint{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(21,101,192,.92);color:#fff;padding:10px 16px;border-radius:10px;font-size:12px;font-weight:600;pointer-events:none;z-index:600;display:none;white-space:nowrap}
+
+@media(max-width:640px){
+  .sidebar{position:absolute;left:0;top:0;bottom:0;transform:translateX(-100%);box-shadow:var(--shadow-lg)}
+  .sidebar.open{transform:translateX(0)}
+  .btn-tog{display:flex}
+  .map-wrap{flex:1;width:100%}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><svg viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg></div>
+  <div>
+    <div class="h-title">DAE Grand Tarbes</div>
+    <div class="h-sub">CARTE COLLABORATIVE · LOURDES-TARBES</div>
+  </div>
+  <div class="h-right">
+    <a href="/admin/" class="btn-admin" style="background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:6px 11px;font-family:Outfit,sans-serif;font-size:11px;cursor:pointer;white-space:nowrap;text-decoration:none">⚙️ Admin</a>
+    <button onclick="openModal('mExport')" style="background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:6px 11px;font-family:Outfit,sans-serif;font-size:11px;cursor:pointer;white-space:nowrap">📥 Export</button>
+    <button class="btn-admin" onclick="openModal('mConfig')">⚙️ Base de données</button>
+    <button class="btn-sos" onclick="openModal('mUrgence')">
+      <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+      URGENCE
+    </button>
+  </div>
+</header>
+
+<div class="stats">
+  <div class="stat"><div class="dot g"></div><span class="stat-lbl">24h/24</span><span class="stat-n" id="cg">—</span></div>
+  <div class="stat-sep"></div>
+  <div class="stat"><div class="dot r"></div><span class="stat-lbl">Horaires</span><span class="stat-n" id="cr">—</span></div>
+  <div class="stat-sep"></div>
+  <div class="stat"><div class="dot o"></div><span class="stat-lbl">Inconnu</span><span class="stat-n" id="co">—</span></div>
+  <div class="stat-sep"></div>
+  <div class="stat"><span class="stat-lbl" style="color:var(--orange)">En attente</span><span class="stat-n" id="cp" style="color:var(--orange)">0</span></div>
+  <div class="collab-badge">
+    <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+    Collaborative
+  </div>
+</div>
+
+<div class="layout">
+  <div class="sidebar" id="sidebar">
+    <div class="search-wrap">
+      <div class="sbox">
+        <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+        <input type="text" id="si" placeholder="Rechercher…" oninput="doFilter()">
+      </div>
+    </div>
+    <div class="filters">
+      <button class="fb on" id="fa" onclick="setF('all')">Tous</button>
+      <button class="fb" id="fg" onclick="setF('g')">✅ 24h/24</button>
+      <button class="fb" id="fr" onclick="setF('r')">🕐 Horaires</button>
+      <button class="fb" id="fo" onclick="setF('o')">❓ Inconnu</button>
+      <button class="fb" id="fp" onclick="setF('p')" style="color:var(--orange);border-color:var(--orange)">⏳ En attente</button>
+    </div>
+    <div class="dae-list" id="dl"></div>
+    <div class="sb-foot">
+      <button class="btn-edit-mode" id="btnEditMode" onclick="toggleEditMode()">
+        <svg viewBox="0 0 24 24" id="editModeIcon"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+        Mode correction d'adresses
+      </button>
+      <button class="btn-add" onclick="openModal('mAjouter')">
+        <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+        Signaler un nouveau DAE
+      </button>
+    </div>
+  </div>
+
+  <div class="map-wrap">
+    <button class="btn-tog" id="btnTog" onclick="toggleSidebar()"><svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg></button>
+    <div id="map"></div>
+    <div class="edit-banner" id="editBanner">
+      <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>
+      Mode correction actif — Glissez un marqueur pour corriger sa position
+    </div>
+    <div class="drag-hint" id="dragHint">📍 Relâchez pour définir la nouvelle position</div>
+    <button class="btn-locate" onclick="locate()" title="Me localiser">
+      <svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0013 3.06V1h-2v2.06A8.994 8.994 0 003.06 11H1v2h2.06A8.994 8.994 0 0011 20.94V23h2v-2.06A8.994 8.994 0 0020.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- MODAL URGENCE -->
+<div class="overlay" id="mUrgence">
+  <div class="mcard">
+    <div class="mhead-center">
+      <div class="m-ico" style="background:var(--red)"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg></div>
+      <h2>Urgence cardiaque</h2>
+      <p>4 étapes à suivre immédiatement</p>
+    </div>
+    <div class="steps">
+      <div class="step"><div class="snum">1</div><div class="stxt">Appelez le 15 (SAMU) ou le 18 (Pompiers)<small>Donnez l'adresse exacte et décrivez la situation</small></div></div>
+      <div class="step"><div class="snum">2</div><div class="stxt">Commencez le massage cardiaque<small>30 compressions → 2 insufflations, sans interruption</small></div></div>
+      <div class="step"><div class="snum">3</div><div class="stxt">Envoyez quelqu'un chercher le DAE<small>Utilisez cette carte pour le localiser rapidement</small></div></div>
+      <div class="step"><div class="snum">4</div><div class="stxt">Allumez le DAE — suivez ses instructions vocales<small>Il vous guide pas à pas — vous pouvez le faire !</small></div></div>
+    </div>
+    <div class="mfoot">
+      <button class="btn-primary" onclick="window.location.href='tel:15'">
+        <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+        Appeler le SAMU — 15
+      </button>
+      <button class="btn-cls" onclick="closeModal('mUrgence')">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CORRIGER UN DAE -->
+<div class="overlay" id="mCorrection">
+  <div class="mcard">
+    <div class="m-head">
+      <h2>✏️ Corriger ce DAE</h2>
+      <p id="corrNomHead">—</p>
+    </div>
+    <div class="correction-form">
+      <h4>Adresse actuelle (incorrecte)</h4>
+      <div class="field-current" id="corrAddrCurrent">
+        <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>
+        <span id="corrAddrCurrentText">—</span>
+      </div>
+      <div class="arrow-down">↓</div>
+      <label>Adresse correcte *</label>
+      <input type="text" id="corrAddrNew" placeholder="Ex : 12 Rue de la République, 65000 Tarbes">
+    </div>
+    <label>Coordonnées GPS <span style="color:var(--muted);font-weight:400">(optionnel — ou glissez le marqueur sur la carte)</span></label>
+    <div class="frow">
+      <div>
+        <label style="margin-top:0">Latitude</label>
+        <input type="text" id="corrLat" placeholder="43.2327">
+      </div>
+      <div>
+        <label style="margin-top:0">Longitude</label>
+        <input type="text" id="corrLng" placeholder="0.0781">
+      </div>
+    </div>
+    <label>Horaires (si incorrects)</label>
+    <input type="text" id="corrHours" placeholder="Ex : Lun-Ven 8h30-17h30">
+    <label>Accessibilité</label>
+    <select id="corrStatus">
+      <option value="">Inchangé</option>
+      <option value="g">24h/24 — Extérieur</option>
+      <option value="r">Horaires limités</option>
+      <option value="o">Statut inconnu</option>
+    </select>
+    <label>Commentaire</label>
+    <textarea id="corrComment" placeholder="Précisions sur l'emplacement, accès, boîtier…"></textarea>
+    <label>Votre nom (optionnel)</label>
+    <input type="text" id="corrAuteur" placeholder="Ex : Pierre Martin, secouriste PSC1">
+    <div class="mfoot">
+      <button class="btn-primary blue" onclick="submitCorrection()">
+        <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+        Envoyer la correction
+      </button>
+      <button class="btn-cls" onclick="closeModal('mCorrection')">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AJOUTER DAE -->
+<div class="overlay" id="mAjouter">
+  <div class="mcard">
+    <div class="m-head">
+      <h2>➕ Signaler un DAE</h2>
+      <p>Aidez la communauté à maintenir la carte à jour</p>
+    </div>
+    <label>Nom du lieu *</label>
+    <input type="text" id="ajNom" placeholder="Ex : Salle des fêtes d'Aureilhan">
+    <label>Adresse complète *</label>
+    <input type="text" id="ajAddr" placeholder="Ex : 1 Rue de la Mairie, 65800 Aureilhan">
+    <div class="frow">
+      <div>
+        <label>Accessibilité</label>
+        <select id="ajStatus">
+          <option value="g">24h/24 — Extérieur</option>
+          <option value="r">Horaires limités</option>
+          <option value="o">Inconnu</option>
+        </select>
+      </div>
+      <div>
+        <label>Type de lieu</label>
+        <select id="ajType">
+          <option>🏛️ Mairie/Admin</option><option>🏥 Médical</option>
+          <option>🏋️ Sport/Loisirs</option><option>🛒 Commerce</option>
+          <option>🏫 École</option><option>🚂 Transport</option>
+          <option>⛪ Culte</option><option>📍 Autre</option>
+        </select>
+      </div>
+    </div>
+    <label>Horaires précis</label>
+    <input type="text" id="ajHours" placeholder="Ex : Lun-Ven 8h-18h, Sam 9h-12h">
+    <label>Emplacement dans le bâtiment</label>
+    <input type="text" id="ajLoc" placeholder="Ex : Accueil RDC, à droite de l'entrée">
+    <label>Marque / Modèle DAE</label>
+    <input type="text" id="ajMarque" placeholder="Ex : Philips HeartStart, Zoll AED Plus…">
+    <label>Votre nom (optionnel)</label>
+    <input type="text" id="ajAuteur" placeholder="Ex : Association des secouristes Tarbes">
+    <div class="mfoot">
+      <button class="btn-primary green" onclick="submitAjout()">
+        <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+        Envoyer le signalement
+      </button>
+      <button class="btn-cls" onclick="closeModal('mAjouter')">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIG AIRTABLE -->
+<div class="overlay" id="mConfig">
+  <div class="mcard">
+    <div class="m-head">
+      <h2>⚙️ Configuration base de données</h2>
+      <p>Connectez Airtable pour synchroniser les corrections citoyennes</p>
+    </div>
+    <div class="config-box">
+      <h4>Airtable (gratuit jusqu'à 1 200 enregistrements)</h4>
+      <label style="margin-top:8px">Personal Access Token</label>
+      <input type="text" id="cfgToken" placeholder="patXXXXXXXXX.XXXXXXXX…">
+      <label>Base ID</label>
+      <input type="text" id="cfgBaseId" placeholder="appXXXXXXXXXXXXXX">
+      <label>Nom de la table</label>
+      <input type="text" id="cfgTable" placeholder="DAE_Corrections">
+      <div id="cfgStatus" class="config-status warn" style="margin-top:10px">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+        Non configuré — mode local uniquement
+      </div>
+    </div>
+    <div class="config-box" style="margin-top:8px">
+      <h4>Comment obtenir vos identifiants</h4>
+      <ol style="font-size:12px;color:var(--muted);padding-left:16px;line-height:2">
+        <li>Créez un compte sur <strong style="color:var(--text)">airtable.com</strong> (gratuit)</li>
+        <li>Créez une base nommée <strong style="color:var(--text)">DAE_Grand_Tarbes</strong></li>
+        <li>Créez une table avec les colonnes : <em>nom, adresse, lat, lng, status, horaires, commentaire, auteur, date</em></li>
+        <li>Allez dans <strong style="color:var(--text)">Account → API → Personal Access Token</strong></li>
+        <li>Copiez votre Base ID dans l'URL de votre base</li>
+      </ol>
+    </div>
+    <div class="mfoot">
+      <button class="btn-primary blue" onclick="saveConfig()">
+        <svg viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+        Enregistrer et tester la connexion
+      </button>
+      <button class="btn-cls" onclick="closeModal('mConfig')">Fermer</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL EXPORT -->
+<div class="overlay" id="mExport">
+  <div class="mcard">
+    <div class="m-head" style="margin-bottom:16px"><h2 style="font-size:17px;font-weight:700">📥 Exporter les données DAE</h2><p style="font-size:12px;color:var(--muted);margin-top:3px">Téléchargez la liste complète des défibrillateurs</p></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:12px 0">
+      <a href="/api/export?format=pdf" target="_blank" style="background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:14px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;text-decoration:none;color:var(--text)">
+        <span style="font-size:22px">🖨️</span><span style="font-size:11px;font-weight:600">PDF</span><span style="font-size:10px;color:var(--muted)">Imprimer</span>
+      </a>
+      <a href="/api/export?format=csv" style="background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:14px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;text-decoration:none;color:var(--text)">
+        <span style="font-size:22px">📊</span><span style="font-size:11px;font-weight:600">CSV</span><span style="font-size:10px;color:var(--muted)">Excel</span>
+      </a>
+      <a href="/api/export?format=json" style="background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:14px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;text-decoration:none;color:var(--text)">
+        <span style="font-size:22px">🔧</span><span style="font-size:11px;font-weight:600">JSON</span><span style="font-size:10px;color:var(--muted)">API</span>
+      </a>
+    </div>
+    <div class="mfoot" style="display:flex;flex-direction:column;gap:7px;margin-top:14px">
+      <button class="btn-cls" onclick="closeModal('mExport')" style="background:var(--bg);color:var(--muted);border:none;border-radius:10px;padding:10px;font-family:Outfit,sans-serif;font-size:13px;cursor:pointer;width:100%">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+  <span id="tmsg">OK</span>
+</div>
+
+<script>
+/* ===== DONNÉES DAE LOCALES ===== */
+const BASE_DATA = [
+  {id:1,  nom:"Mairie de Tarbes",              addr:"Place de Verdun, 65000 Tarbes",                lat:43.2327, lng:0.0781,  s:"g", em:"🏛️", h:"Lun-Ven 8h30-17h30",             v:"Vérifié mars 2025",  m:"Philips HeartStart",  loc:"Accueil RDC"},
+  {id:2,  nom:"Centre Hospitalier de Tarbes",  addr:"Place Mallaret, 65000 Tarbes",                 lat:43.2290, lng:0.0758,  s:"g", em:"🏥", h:"24h/24 — Urgences",              v:"Vérifié fév. 2025",  m:"Zoll AED Plus",       loc:"Entrée urgences"},
+  {id:3,  nom:"Piscine municipale Pommès",     addr:"Rue de la Piscine, 65000 Tarbes",              lat:43.2361, lng:0.0821,  s:"r", em:"🏊", h:"Mar-Dim 7h-21h",                 v:"Vérifié jan. 2025",  m:"Defibtech",           loc:"Caisse entrée"},
+  {id:4,  nom:"Gare SNCF de Tarbes",           addr:"Av. du Maréchal Joffre, 65000 Tarbes",         lat:43.2271, lng:0.0714,  s:"g", em:"🚂", h:"5h30-23h30 tous jours",          v:"Vérifié déc. 2024",  m:"Cardiac Science",     loc:"Hall principal"},
+  {id:5,  nom:"Stade Maurice Trélut",          addr:"Rue M. Berthelot, 65000 Tarbes",               lat:43.2410, lng:0.0750,  s:"r", em:"⚽", h:"Selon matchs/entraînements",    v:"Vérifié oct. 2024",  m:"Schiller",            loc:"Entrée tribunes"},
+  {id:6,  nom:"Géant Casino Tarbes",           addr:"Route de Pau, 65000 Tarbes",                   lat:43.2190, lng:0.0850,  s:"g", em:"🛒", h:"Lun-Sam 8h-21h",                v:"Non vérifié",        m:"Inconnu",             loc:"Service clients"},
+  {id:7,  nom:"Mairie d'Aureilhan",            addr:"Pl. Gén. de Gaulle, 65800 Aureilhan",          lat:43.2450, lng:0.0820,  s:"r", em:"🏛️", h:"Lun-Ven 8h30-12h / 14h-17h",   v:"Vérifié nov. 2024",  m:"Philips FRx",         loc:"Accueil mairie"},
+  {id:8,  nom:"Mairie d'Ibos",                 addr:"Place de la Mairie, 65420 Ibos",               lat:43.2162, lng:0.0625,  s:"r", em:"🏛️", h:"Lun-Ven 9h-12h / 14h-17h",     v:"Vérifié jan. 2025",  m:"Nihon Kohden",        loc:"Rez-de-chaussée"},
+  {id:9,  nom:"Sanctuaire Notre-Dame Lourdes", addr:"Av. Mgr Théas, 65100 Lourdes",                lat:43.0935, lng:-0.0453, s:"g", em:"⛪", h:"Ouvert tous les jours",          v:"Vérifié fév. 2025",  m:"Zoll AED 3",          loc:"Poste de secours"},
+  {id:10, nom:"Halles de Lourdes",             addr:"Rue de la Grotte, 65100 Lourdes",              lat:43.0972, lng:-0.0461, s:"r", em:"🛒", h:"Lun-Sam 9h-19h30",              v:"Vérifié mars 2025",  m:"Cardiac Science",     loc:"Galerie centrale"},
+  {id:11, nom:"Gare de Lourdes",               addr:"Place de la Gare, 65100 Lourdes",              lat:43.0985, lng:-0.0506, s:"g", em:"🚂", h:"6h-22h",                        v:"Vérifié jan. 2025",  m:"Philips HeartStart",  loc:"Hall voyageurs"},
+  {id:12, nom:"Piscine de Séméac",             addr:"Rue du Stade, 65600 Séméac",                   lat:43.2498, lng:0.0782,  s:"o", em:"🏊", h:"Statut inconnu",                 v:"Non vérifié",        m:"Inconnu",             loc:"Inconnu"},
+  {id:13, nom:"Lycée Théophile Gautier",       addr:"Rue Massey, 65000 Tarbes",                     lat:43.2344, lng:0.0799,  s:"r", em:"🏫", h:"Lun-Ven période scolaire",       v:"Vérifié oct. 2024",  m:"Schiller FRED",       loc:"Infirmerie 1er"},
+  {id:14, nom:"Clinique Les Cèdres",           addr:"Chemin Long, 65000 Tarbes",                    lat:43.2255, lng:0.0921,  s:"r", em:"🏥", h:"Accès limité la nuit",           v:"Vérifié déc. 2024",  m:"Zoll",                loc:"Accueil principal"},
+  {id:15, nom:"Office de Tourisme Tarbes",     addr:"3 cours Gambetta, 65000 Tarbes",               lat:43.2340, lng:0.0770,  s:"r", em:"📍", h:"Lun-Sam 9h-12h30 / 14h-18h",   v:"Vérifié fév. 2025",  m:"Philips",             loc:"Entrée"},
+  {id:16, nom:"Mairie de Séméac",              addr:"Av. du Stade, 65600 Séméac",                   lat:43.2521, lng:0.0710,  s:"r", em:"🏛️", h:"Lun-Ven 8h30-12h / 14h-17h",   v:"Vérifié mars 2025",  m:"Cardiac Science",     loc:"Accueil"},
+  {id:17, nom:"Gymnase de Tarbes Ouest",       addr:"Rue Pierre Loti, 65000 Tarbes",                lat:43.2380, lng:0.0680,  s:"r", em:"🏋️", h:"Lun-Sam 8h-21h",               v:"Vérifié jan. 2025",  m:"Schiller FRED PA-1",  loc:"Vestiaires entrée"},
+  {id:18, nom:"Clinique Ambroise Paré",        addr:"Rue de Laubadère, 65000 Tarbes",               lat:43.2310, lng:0.0840,  s:"g", em:"🏥", h:"24h/24",                        v:"Vérifié mars 2025",  m:"Zoll AED Plus",       loc:"Entrée principale"},
+];
+
+const CLR = {g:'#2d9e5f', r:'#e63946', o:'#e07c24', p:'#e07c24'};
+const LBL = {g:'24h/24', r:'Horaires limités', o:'Statut inconnu', p:'En attente'};
+
+/* ===== STATE ===== */
+let map, mkrs={}, uMark=null;
+let activeF='all', activeId=null, editMode=false;
+let corrections=[]; // corrections locales en attente
+let currentCorrId=null; // DAE en cours de correction
+let cfg={token:'',baseId:'',table:'DAE_Corrections'};
+
+// Charger config sauvegardée
+try { const s=localStorage.getItem('dae_cfg'); if(s){cfg=JSON.parse(s);} } catch(e){}
+try { const s=localStorage.getItem('dae_corrections'); if(s){corrections=JSON.parse(s);} } catch(e){}
+
+/* ===== MAP ===== */
+function initMap(){
+  map=L.map('map').setView([43.195,0.045],12);
+  L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png',{
+    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> France',
+    maxZoom:19
+  }).addTo(map);
+  BASE_DATA.forEach(addMark);
+  updateStats();
+  renderList(getFiltered());
+  updateCfgStatus();
+}
+
+function mkIcon(s, draggable){
+  const c=CLR[s]||'#e07c24';
+  const ring=draggable?`box-shadow:0 0 0 4px rgba(21,101,192,.35);`:'';
+  return L.divIcon({
+    className:'',
+    html:`<div style="width:30px;height:30px;background:${c};border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid ${draggable?'#1565c0':'#fff'};${ring}transition:border .2s;display:flex;align-items:center;justify-content:center;"><span style="transform:rotate(45deg);font-size:13px;">💓</span></div>`,
+    iconSize:[30,30],iconAnchor:[15,30],popupAnchor:[0,-32]
+  });
+}
+
+function addMark(d){
+  const hasPendingCorr = corrections.some(c=>c.daeId===d.id);
+  const status = hasPendingCorr ? 'p' : d.s;
+  const m=L.marker([d.lat,d.lng],{icon:mkIcon(status,false),draggable:false}).addTo(map);
+  m.bindPopup(popupHTML(d,hasPendingCorr),{maxWidth:280,minWidth:260});
+  m.on('click',()=>{hilite(d.id)});
+  m.on('dragend',e=>{
+    const p=e.target.getLatLng();
+    onMarkerDragged(d.id, p.lat, p.lng);
+  });
+  mkrs[d.id]=m;
+}
+
+function refreshMarker(d){
+  if(mkrs[d.id]){ map.removeLayer(mkrs[d.id]); delete mkrs[d.id]; }
+  addMark(d);
+}
+
+function popupHTML(d, hasPending){
+  const penTag = hasPending ? `<span class="pc-tag pending">⏳ Correction en attente</span>` : '';
+  return `<div class="pc">
+    <div class="pc-head">
+      <div class="pc-em">${d.em}</div>
+      <div><div class="pc-ttl">${d.nom}</div><div class="pc-sub">${d.addr}</div></div>
+    </div>
+    <div class="pc-body">
+      <div class="pc-row"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm4.24 16L11 14V7h1.5v6.25l4.5 2.67L16.23 18z"/></svg><strong>${d.h}</strong></div>
+      <div class="pc-row"><svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>${d.loc} · ${d.m}</div>
+      <div class="pc-row"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>${d.v}</div>
+      <span class="pc-tag ${d.s}">${LBL[d.s]}</span> ${penTag}
+    </div>
+    <div class="pc-acts">
+      <button class="pc-nav" onclick="window.open('https://www.openstreetmap.org/directions?to=${d.lat},${d.lng}','_blank')">
+        <svg viewBox="0 0 24 24"><path d="M21.71 11.29l-9-9c-.39-.39-1.02-.39-1.41 0l-9 9c-.39.39-.39 1.02 0 1.41l9 9c.39.39 1.02.39 1.41 0l9-9c.39-.38.39-1.02 0-1.41zM14 14.5V12h-4v3H8v-4c0-.55.45-1 1-1h5V7.5l3.5 3.5-3.5 3.5z"/></svg>
+        Itinéraire
+      </button>
+      <button class="pc-edit" onclick="openCorrection(${d.id})">✏️ Corriger</button>
+      <button class="pc-sec" onclick="openModal('mUrgence')">⚡</button>
+    </div>
+  </div>`;
+}
+
+/* ===== CORRECTION WORKFLOW ===== */
+function openCorrection(id){
+  const d=BASE_DATA.find(x=>x.id===id);
+  if(!d) return;
+  currentCorrId=id;
+  document.getElementById('corrNomHead').textContent=d.nom;
+  document.getElementById('corrAddrCurrentText').textContent=d.addr;
+  document.getElementById('corrAddrNew').value='';
+  document.getElementById('corrLat').value=d.lat;
+  document.getElementById('corrLng').value=d.lng;
+  document.getElementById('corrHours').value='';
+  document.getElementById('corrStatus').value='';
+  document.getElementById('corrComment').value='';
+  document.getElementById('corrAuteur').value='';
+  // Si mode édition actif, centrer et fermer popup
+  if(editMode){
+    map.closePopup();
+    map.setView([d.lat,d.lng],16);
+  }
+  openModal('mCorrection');
+}
+
+function submitCorrection(){
+  const addrNew=document.getElementById('corrAddrNew').value.trim();
+  if(!addrNew){ toast('Merci de saisir la nouvelle adresse','warn'); return; }
+  const d=BASE_DATA.find(x=>x.id===currentCorrId);
+  if(!d) return;
+  const lat=parseFloat(document.getElementById('corrLat').value)||d.lat;
+  const lng=parseFloat(document.getElementById('corrLng').value)||d.lng;
+  const corr={
+    id: Date.now(),
+    daeId: currentCorrId,
+    daeNom: d.nom,
+    addrOld: d.addr,
+    addrNew,
+    latNew: lat,
+    lngNew: lng,
+    horaires: document.getElementById('corrHours').value.trim(),
+    newStatus: document.getElementById('corrStatus').value,
+    comment: document.getElementById('corrComment').value.trim(),
+    auteur: document.getElementById('corrAuteur').value.trim(),
+    date: new Date().toISOString(),
+    source: 'citoyen'
+  };
+  corrections.push(corr);
+  try{ localStorage.setItem('dae_corrections',JSON.stringify(corrections)); }catch(e){}
+
+  // Mise à jour visuelle immédiate du marqueur
+  d._pendingAddr = addrNew;
+  d._pendingLat = lat;
+  d._pendingLng = lng;
+  // Déplacer le marqueur
+  if(mkrs[d.id]){
+    mkrs[d.id].setLatLng([lat,lng]);
+    mkrs[d.id].setIcon(mkIcon('p',false));
+    mkrs[d.id].setPopupContent(popupHTML(d,true));
+  }
+
+  closeModal('mCorrection');
+  updateStats();
+  renderList(getFiltered());
+
+  // Envoyer vers Airtable si configuré
+  sendToAirtable(corr);
+  toast('✅ Correction enregistrée — merci pour votre contribution !');
+}
+
+function onMarkerDragged(id, lat, lng){
+  document.getElementById('corrLat').value=lat.toFixed(6);
+  document.getElementById('corrLng').value=lng.toFixed(6);
+  openCorrection(id);
+  toast('📍 Nouvelle position enregistrée — complétez le formulaire');
+}
+
+/* ===== EDIT MODE ===== */
+function toggleEditMode(){
+  editMode=!editMode;
+  const btn=document.getElementById('btnEditMode');
+  const banner=document.getElementById('editBanner');
+  btn.classList.toggle('active',editMode);
+  banner.classList.toggle('show',editMode);
+
+  Object.entries(mkrs).forEach(([id,m])=>{
+    m.dragging[editMode?'enable':'disable']();
+    const d=BASE_DATA.find(x=>x.id==id);
+    if(d){ m.setIcon(mkIcon(corrections.some(c=>c.daeId===d.id)?'p':d.s, editMode)); }
+  });
+
+  if(editMode){
+    map.closePopup();
+    toast('🖱️ Mode correction actif — glissez un marqueur ou cliquez Corriger');
+  } else {
+    toast('Mode correction désactivé');
+    Object.entries(mkrs).forEach(([id,m])=>{
+      const d=BASE_DATA.find(x=>x.id==id);
+      if(d){ m.setIcon(mkIcon(corrections.some(c=>c.daeId===d.id)?'p':d.s,false)); }
+    });
+  }
+}
+
+/* ===== AIRTABLE ===== */
+async function sendToAirtable(corr){
+  if(!cfg.token||!cfg.baseId||!cfg.table) return;
+  try{
+    const url=`https://api.airtable.com/v0/${cfg.baseId}/${encodeURIComponent(cfg.table)}`;
+    const body={fields:{
+      nom: corr.daeNom,
+      adresse_actuelle: corr.addrOld,
+      adresse_corrigee: corr.addrNew,
+      latitude: corr.latNew,
+      longitude: corr.lngNew,
+      horaires: corr.horaires,
+      statut: corr.newStatus,
+      commentaire: corr.comment,
+      auteur: corr.auteur||'Anonyme',
+      date: corr.date,
+      type: corr.source
+    }};
+    const r=await fetch(url,{method:'POST',headers:{'Authorization':'Bearer '+cfg.token,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(r.ok){ console.log('Airtable OK'); }
+    else{ console.warn('Airtable error',r.status); }
+  }catch(e){ console.warn('Airtable unreachable',e); }
+}
+
+async function sendAjoutToAirtable(data){
+  if(!cfg.token||!cfg.baseId||!cfg.table) return;
+  try{
+    const url=`https://api.airtable.com/v0/${cfg.baseId}/${encodeURIComponent(cfg.table)}`;
+    const body={fields:{...data, type:'nouveau_dae'}};
+    await fetch(url,{method:'POST',headers:{'Authorization':'Bearer '+cfg.token,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  }catch(e){}
+}
+
+/* ===== AJOUT ===== */
+function submitAjout(){
+  const nom=document.getElementById('ajNom').value.trim();
+  const addr=document.getElementById('ajAddr').value.trim();
+  if(!nom||!addr){ toast('Merci de remplir les champs obligatoires','warn'); return; }
+  const data={
+    nom, adresse_corrigee:addr,
+    statut:document.getElementById('ajStatus').value,
+    type_lieu:document.getElementById('ajType').value,
+    horaires:document.getElementById('ajHours').value.trim(),
+    emplacement:document.getElementById('ajLoc').value.trim(),
+    marque:document.getElementById('ajMarque').value.trim(),
+    auteur:document.getElementById('ajAuteur').value.trim()||'Anonyme',
+    date:new Date().toISOString()
+  };
+  sendAjoutToAirtable(data);
+  closeModal('mAjouter');
+  toast('✅ Signalement envoyé — merci pour votre contribution !');
+  ['ajNom','ajAddr','ajHours','ajLoc','ajMarque','ajAuteur'].forEach(id=>document.getElementById(id).value='');
+}
+
+/* ===== CONFIG ===== */
+function saveConfig(){
+  cfg.token=document.getElementById('cfgToken').value.trim();
+  cfg.baseId=document.getElementById('cfgBaseId').value.trim();
+  cfg.table=document.getElementById('cfgTable').value.trim()||'DAE_Corrections';
+  try{ localStorage.setItem('dae_cfg',JSON.stringify(cfg)); }catch(e){}
+  testAirtable();
+}
+
+async function testAirtable(){
+  const st=document.getElementById('cfgStatus');
+  if(!cfg.token||!cfg.baseId){ st.className='config-status warn'; st.innerHTML='<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg> Token ou Base ID manquant'; return; }
+  st.className='config-status warn'; st.innerHTML='<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg> Test en cours…';
+  try{
+    const url=`https://api.airtable.com/v0/${cfg.baseId}/${encodeURIComponent(cfg.table)}?maxRecords=1`;
+    const r=await fetch(url,{headers:{'Authorization':'Bearer '+cfg.token}});
+    if(r.ok){ st.className='config-status ok'; st.innerHTML='<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Connexion Airtable réussie !'; toast('✅ Airtable connecté — les corrections seront synchronisées'); }
+    else{ st.className='config-status err'; st.innerHTML='<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg> Erreur '+r.status+' — vérifiez vos identifiants'; }
+  }catch(e){ st.className='config-status err'; st.innerHTML='<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg> Connexion impossible'; }
+}
+
+function updateCfgStatus(){
+  if(cfg.token&&cfg.baseId){ document.getElementById('cfgToken').value=cfg.token; document.getElementById('cfgBaseId').value=cfg.baseId; document.getElementById('cfgTable').value=cfg.table; }
+}
+
+/* ===== LIST & FILTER ===== */
+function getFiltered(){
+  const q=document.getElementById('si').value.toLowerCase();
+  return BASE_DATA.filter(d=>{
+    const hasPending=corrections.some(c=>c.daeId===d.id);
+    const ms = activeF==='all'||(activeF==='p'?hasPending:d.s===activeF);
+    const mq = !q||d.nom.toLowerCase().includes(q)||d.addr.toLowerCase().includes(q);
+    return ms&&mq;
+  });
+}
+function doFilter(){ renderList(getFiltered()); }
+
+function setF(f){
+  activeF=f;
+  ['fa','fg','fr','fo','fp'].forEach(id=>document.getElementById(id).classList.remove('on'));
+  const map_={all:'fa',g:'fg',r:'fr',o:'fo',p:'fp'};
+  if(map_[f]) document.getElementById(map_[f]).classList.add('on');
+  doFilter();
+}
+
+function renderList(items){
+  const c=document.getElementById('dl');
+  if(!items.length){ c.innerHTML='<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px;">Aucun résultat</div>'; return; }
+  c.innerHTML=items.map(d=>{
+    const hasPending=corrections.some(c=>c.daeId===d.id);
+    const s=hasPending?'p':d.s;
+    return `<div class="dae-item${d.id===activeId?' active':''}${hasPending?' pending':''}" id="di${d.id}" onclick="selectDAE(${d.id})">
+      <div class="di-icon ${d.s}">${d.em}</div>
+      <div class="di-body">
+        <div class="di-name">${d.nom}</div>
+        <div class="di-addr">${d._pendingAddr||d.addr}</div>
+        <div class="di-foot">
+          <span class="tag ${s}">${LBL[s]}</span>
+          ${hasPending?'<span class="tag pending">⏳ En attente</span>':''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updateStats(){
+  document.getElementById('cg').textContent=BASE_DATA.filter(d=>d.s==='g').length;
+  document.getElementById('cr').textContent=BASE_DATA.filter(d=>d.s==='r').length;
+  document.getElementById('co').textContent=BASE_DATA.filter(d=>d.s==='o').length;
+  document.getElementById('cp').textContent=corrections.length;
+}
+
+function hilite(id){
+  activeId=id;
+  document.querySelectorAll('.dae-item').forEach(e=>e.classList.remove('active'));
+  const el=document.getElementById('di'+id);
+  if(el){ el.classList.add('active'); el.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+}
+
+function selectDAE(id){
+  hilite(id);
+  const d=BASE_DATA.find(x=>x.id===id);
+  if(d&&mkrs[id]){ map.setView([d._pendingLat||d.lat, d._pendingLng||d.lng],16); mkrs[id].openPopup(); }
+  if(window.innerWidth<=640) document.getElementById('sidebar').classList.remove('open');
+}
+
+/* ===== GÉOLOCALISATION ===== */
+function locate(){
+  if(!navigator.geolocation){ toast("Géolocalisation non disponible",'warn'); return; }
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const{latitude:la,longitude:ln}=pos.coords;
+    if(uMark) map.removeLayer(uMark);
+    uMark=L.circleMarker([la,ln],{radius:10,fillColor:'#1565c0',fillOpacity:.9,color:'#fff',weight:3}).addTo(map).bindPopup("📍 Votre position").openPopup();
+    map.setView([la,ln],15);
+    let mn=Infinity,cl=null;
+    BASE_DATA.forEach(d=>{const dist=Math.hypot(d.lat-la,d.lng-ln);if(dist<mn){mn=dist;cl=d;}});
+    if(cl) setTimeout(()=>{mkrs[cl.id].openPopup();hilite(cl.id);toast('Plus proche : '+cl.nom);},800);
+  },()=>toast("Impossible d'obtenir votre position",'warn'));
+}
+
+/* ===== MODALS ===== */
+function openModal(id){ document.getElementById(id).classList.add('show'); }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+document.querySelectorAll('.overlay').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('show');}));
+
+function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('open'); }
+
+/* ===== TOAST ===== */
+function toast(msg,type='ok',dur=3800){
+  const t=document.getElementById('toast');
+  document.getElementById('tmsg').textContent=msg;
+  t.className='toast '+(type!=='ok'?type:'');
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),dur);
+}
+
+window.addEventListener('load',initMap);
+</script>
+</body>
+</html>

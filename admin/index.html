@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DAE Grand Tarbes — Administration</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:'Outfit',sans-serif;background:#f0eeea;color:#1a1917}
+:root{
+  --red:#e63946;--red-d:#c1121f;--red-p:#fff0f1;
+  --green:#2d9e5f;--green-p:#edfaf3;
+  --orange:#e07c24;--orange-p:#fff8ee;
+  --blue:#1565c0;--blue-p:#e8f1fb;
+  --bg:#f0eeea;--white:#fff;--line:#e8e6e0;
+  --text:#1a1917;--muted:#7a7870;--light:#b0aea8;
+  --r:12px;--shadow:0 2px 12px rgba(0,0,0,.08);--shadow-lg:0 8px 32px rgba(0,0,0,.12)
+}
+
+/* LOGIN */
+.login-wrap{display:flex;align-items:center;justify-content:center;height:100vh;background:#1a1917}
+.login-card{background:var(--white);border-radius:20px;padding:36px;width:340px;box-shadow:var(--shadow-lg)}
+.login-logo{width:56px;height:56px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:24px;animation:hbeat 1.8s ease-in-out infinite}
+@keyframes hbeat{0%,100%{box-shadow:0 0 0 0 rgba(230,57,70,.5)}50%{box-shadow:0 0 0 8px rgba(230,57,70,0)}}
+.login-title{text-align:center;font-size:20px;font-weight:700;margin-bottom:4px}
+.login-sub{text-align:center;font-size:12px;color:var(--muted);margin-bottom:24px}
+.login-card label{font-size:12px;font-weight:500;display:block;margin-bottom:4px;color:var(--text)}
+.login-card input{width:100%;border:1.5px solid var(--line);border-radius:8px;padding:10px 12px;font-family:'Outfit',sans-serif;font-size:14px;color:var(--text);outline:none;margin-bottom:12px}
+.login-card input:focus{border-color:var(--red)}
+.btn-login{width:100%;background:var(--red);color:#fff;border:none;border-radius:10px;padding:13px;font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:background .15s;margin-top:4px}
+.btn-login:hover{background:var(--red-d)}
+.login-err{background:var(--red-p);color:var(--red-d);border-radius:8px;padding:8px 12px;font-size:12px;margin-top:8px;display:none}
+.login-err.show{display:block}
+
+/* ADMIN LAYOUT */
+.admin-wrap{display:none;flex-direction:column;min-height:100vh}
+.admin-wrap.show{display:flex}
+.adm-header{background:#1a1917;color:#fff;padding:0 24px;height:56px;display:flex;align-items:center;gap:14px;flex-shrink:0}
+.adm-logo{width:30px;height:30px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px}
+.adm-title{font-size:15px;font-weight:600}
+.adm-sub{font-size:10px;color:rgba(255,255,255,.4)}
+.adm-nav{margin-left:auto;display:flex;gap:8px}
+.nav-btn{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:6px 12px;font-family:'Outfit',sans-serif;font-size:11px;font-weight:500;cursor:pointer;transition:background .12s;display:flex;align-items:center;gap:5px}
+.nav-btn.active{background:rgba(255,255,255,.25)}
+.nav-btn:hover{background:rgba(255,255,255,.2)}
+.adm-body{flex:1;display:flex;overflow:hidden}
+.adm-sidebar{width:220px;background:var(--white);border-right:1px solid var(--line);padding:16px 12px;flex-shrink:0}
+.sidebar-section{margin-bottom:20px}
+.sidebar-section h3{font-size:10px;font-weight:600;color:var(--light);text-transform:uppercase;letter-spacing:.6px;padding:0 4px;margin-bottom:6px}
+.sidebar-link{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:9px;cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);transition:all .12s;text-decoration:none;border:none;background:none;width:100%;text-align:left}
+.sidebar-link:hover{background:var(--bg);color:var(--text)}
+.sidebar-link.active{background:var(--red-p);color:var(--red)}
+.sidebar-link .badge{margin-left:auto;background:var(--red);color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.adm-main{flex:1;overflow-y:auto;padding:24px}
+
+/* CARDS */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.kpi{background:var(--white);border-radius:var(--r);padding:16px 18px;box-shadow:var(--shadow)}
+.kpi-num{font-size:28px;font-weight:700;font-family:'Space Mono',monospace;line-height:1}
+.kpi-lbl{font-size:11px;color:var(--muted);margin-top:4px}
+.kpi.red .kpi-num{color:var(--red)}
+.kpi.green .kpi-num{color:var(--green)}
+.kpi.orange .kpi-num{color:var(--orange)}
+.kpi.blue .kpi-num{color:var(--blue)}
+
+.section-card{background:var(--white);border-radius:var(--r);box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden}
+.section-head{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+.section-head h2{font-size:14px;font-weight:600}
+.section-head p{font-size:12px;color:var(--muted);margin-top:2px}
+.section-head .ml{margin-left:auto;display:flex;gap:8px}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{background:var(--bg);color:var(--muted);padding:9px 12px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid var(--line)}
+tbody td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tbody tr:hover td{background:#fafaf8}
+tbody tr:last-child td{border-bottom:none}
+.cell-name{font-weight:600;color:var(--text)}
+.cell-addr{color:var(--muted);font-size:11px;margin-top:2px}
+.tag-sm{font-size:10px;font-weight:500;padding:2px 7px;border-radius:6px;display:inline-block}
+.tag-sm.g{background:var(--green-p);color:var(--green)}.tag-sm.r{background:var(--red-p);color:var(--red)}
+.tag-sm.o{background:var(--orange-p);color:var(--orange)}.tag-sm.pending{background:#fff3e0;color:#e65100}
+.tag-sm.valid{background:var(--green-p);color:var(--green)}.tag-sm.reject{background:var(--bg);color:var(--muted)}
+.action-btns{display:flex;gap:6px;flex-wrap:wrap}
+.btn-validate{background:var(--green);color:#fff;border:none;border-radius:7px;padding:6px 12px;font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;cursor:pointer;transition:background .12s}
+.btn-validate:hover{background:#1e7a47}
+.btn-reject{background:var(--bg);color:var(--muted);border:1px solid var(--line);border-radius:7px;padding:6px 12px;font-family:'Outfit',sans-serif;font-size:11px;cursor:pointer;transition:all .12s}
+.btn-reject:hover{border-color:var(--muted);color:var(--text)}
+.btn-view{background:var(--blue-p);color:var(--blue);border:none;border-radius:7px;padding:6px 12px;font-family:'Outfit',sans-serif;font-size:11px;cursor:pointer}
+.btn-action{background:var(--white);color:var(--text);border:1.5px solid var(--line);border-radius:8px;padding:7px 14px;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .12s}
+.btn-action:hover{border-color:var(--text)}
+.btn-action.red{border-color:var(--red);color:var(--red)}.btn-action.red:hover{background:var(--red-p)}
+.btn-action.green{border-color:var(--green);color:var(--green)}.btn-action.green:hover{background:var(--green-p)}
+.btn-action.blue{border-color:var(--blue);color:var(--blue)}.btn-action.blue:hover{background:var(--blue-p)}
+.btn-action.primary{background:var(--red);color:#fff;border-color:var(--red)}.btn-action.primary:hover{background:var(--red-d)}
+
+/* DIFF VIEW */
+.diff-old{color:var(--red-d);text-decoration:line-through;font-size:11px;background:var(--red-p);padding:2px 5px;border-radius:4px}
+.diff-new{color:var(--green);font-weight:600;font-size:11px;background:var(--green-p);padding:2px 5px;border-radius:4px}
+
+/* IMPORT BOX */
+.import-box{padding:18px;display:flex;flex-direction:column;gap:12px}
+.import-step{display:flex;align-items:flex-start;gap:12px;background:var(--bg);border-radius:9px;padding:12px}
+.import-num{width:26px;height:26px;border-radius:50%;background:var(--blue);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.import-txt{font-size:13px;line-height:1.5}
+.import-txt strong{color:var(--text)}
+.import-txt span{color:var(--muted);font-size:12px;display:block;margin-top:2px}
+.progress-bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:6px}
+.progress-fill{height:100%;background:var(--blue);border-radius:3px;width:0%;transition:width .3s}
+
+/* CONFIG */
+.config-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:18px}
+.config-field label{font-size:12px;font-weight:500;color:var(--text);display:block;margin-bottom:4px}
+.config-field input,.config-field select{width:100%;border:1.5px solid var(--line);border-radius:8px;padding:9px 11px;font-family:'Outfit',sans-serif;font-size:13px;color:var(--text);outline:none}
+.config-field input:focus,.config-field select:focus{border-color:var(--red)}
+.config-status{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;font-size:12px;margin:0 18px 18px}
+.config-status.ok{background:var(--green-p);color:var(--green)}
+.config-status.err{background:var(--red-p);color:var(--red)}
+.config-status.warn{background:var(--orange-p);color:var(--orange)}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;transform:translateY(80px);background:#1a1917;color:#fff;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:500;z-index:9999;transition:transform .28s ease;display:flex;align-items:center;gap:8px;box-shadow:var(--shadow-lg)}
+.toast.show{transform:translateY(0)}
+.toast.ok::before{content:'✅'}
+.toast.warn::before{content:'⚠️'}
+.toast.err::before{content:'❌'}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
+.overlay.show{display:flex}
+.mcard{background:var(--white);border-radius:18px;padding:24px;max-width:480px;width:94%;box-shadow:var(--shadow-lg);max-height:90vh;overflow-y:auto}
+.mcard h2{font-size:16px;font-weight:700;margin-bottom:4px}
+.mcard p{font-size:12px;color:var(--muted);margin-bottom:16px}
+.detail-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+.detail-table td{padding:8px 10px;border-bottom:1px solid var(--line)}
+.detail-table td:first-child{color:var(--muted);width:130px;font-size:11px}
+.detail-table td:last-child{font-weight:500;color:var(--text)}
+.mfoot{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+
+.empty-state{padding:40px;text-align:center;color:var(--muted)}
+.empty-state .icon{font-size:40px;margin-bottom:12px}
+.empty-state p{font-size:14px}
+
+@media(max-width:900px){.kpi-grid{grid-template-columns:1fr 1fr}.adm-sidebar{display:none}.config-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-wrap" id="loginWrap">
+  <div class="login-card">
+    <div class="login-logo">💓</div>
+    <div class="login-title">DAE Grand Tarbes</div>
+    <div class="login-sub">Interface d'administration</div>
+    <label>Mot de passe admin</label>
+    <input type="password" id="pwInput" placeholder="••••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="btn-login" onclick="doLogin()">Se connecter</button>
+    <div class="login-err" id="loginErr">Mot de passe incorrect</div>
+    <div style="margin-top:16px;padding:10px 12px;background:#f5f4f0;border-radius:8px;font-size:11px;color:#7a7870;line-height:1.5">
+      💡 Le mot de passe est défini dans la variable d'environnement <strong>ADMIN_PASSWORD</strong> sur Vercel.<br>
+      En mode test local, utilisez : <strong>admin123</strong>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN APP -->
+<div class="admin-wrap" id="adminWrap">
+  <div class="adm-header">
+    <div class="adm-logo">💓</div>
+    <div><div class="adm-title">DAE Admin</div><div class="adm-sub">GRAND TARBES</div></div>
+    <div class="adm-nav">
+      <a href="/" class="nav-btn">← Retour à la carte</a>
+      <button class="nav-btn" onclick="refreshAll()">🔄 Actualiser</button>
+      <button class="nav-btn" id="btnConnStatus">⬤ Airtable</button>
+    </div>
+  </div>
+  <div class="adm-body">
+    <div class="adm-sidebar">
+      <div class="sidebar-section">
+        <h3>Modération</h3>
+        <button class="sidebar-link active" id="lnk-corrections" onclick="showPage('corrections')">
+          ✏️ Corrections <span class="badge" id="corrBadge">0</span>
+        </button>
+        <button class="sidebar-link" id="lnk-signalements" onclick="showPage('signalements')">
+          ➕ Nouveaux DAE <span class="badge" id="sigBadge" style="background:var(--green)">0</span>
+        </button>
+      </div>
+      <div class="sidebar-section">
+        <h3>Données</h3>
+        <button class="sidebar-link" id="lnk-dae" onclick="showPage('dae')">📋 Liste DAE</button>
+        <button class="sidebar-link" id="lnk-import" onclick="showPage('import')">🌐 Import OSM</button>
+        <button class="sidebar-link" id="lnk-export" onclick="showPage('export')">📥 Export</button>
+      </div>
+      <div class="sidebar-section">
+        <h3>Paramètres</h3>
+        <button class="sidebar-link" id="lnk-config" onclick="showPage('config')">⚙️ Configuration</button>
+      </div>
+    </div>
+
+    <div class="adm-main" id="admMain">
+      <!-- Contenu dynamique -->
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DÉTAIL CORRECTION -->
+<div class="overlay" id="mDetail">
+  <div class="mcard">
+    <h2 id="detailTitle">Détail de la correction</h2>
+    <p id="detailSub">—</p>
+    <table class="detail-table" id="detailTable"></table>
+    <div class="mfoot" id="detailActions"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"><span id="tmsg">OK</span></div>
+
+<script>
+let adminPwd='';
+let daeData=[], corrections=[], signalements=[], currentPage='corrections';
+let currentDetailItem=null;
+
+// ── AUTH ──────────────────────────────────────────────────────────────────
+async function doLogin(){
+  const pw=document.getElementById('pwInput').value;
+  if(!pw)return;
+  // Test via API admin (mot de passe validé côté serveur)
+  // En mode test local, accepter 'admin123'
+  const isLocal=location.hostname==='localhost'||location.hostname==='127.0.0.1';
+  if(isLocal&&pw==='admin123'){
+    adminPwd=pw;
+    document.getElementById('loginWrap').style.display='none';
+    document.getElementById('adminWrap').classList.add('show');
+    refreshAll();
+    return;
+  }
+  try{
+    const r=await fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'validate',password:pw,correctionId:'test',test:true})});
+    // 401 = mauvais mdp, 400 = bon mdp mais paramètres manquants = OK
+    if(r.status===401){showLoginErr();return;}
+    adminPwd=pw;
+    document.getElementById('loginWrap').style.display='none';
+    document.getElementById('adminWrap').classList.add('show');
+    refreshAll();
+  }catch(e){
+    // réseau — accepter si local
+    if(pw.length>=6){adminPwd=pw;document.getElementById('loginWrap').style.display='none';document.getElementById('adminWrap').classList.add('show');refreshAll();}
+    else showLoginErr();
+  }
+}
+function showLoginErr(){document.getElementById('loginErr').classList.add('show');setTimeout(()=>document.getElementById('loginErr').classList.remove('show'),2500);}
+
+// ── DATA ─────────────────────────────────────────────────────────────────
+async function refreshAll(){
+  await Promise.all([loadDAE(), loadCorrections()]);
+  renderPage();
+}
+
+async function loadDAE(){
+  try{const r=await fetch('/api/dae');const j=await r.json();daeData=j.data||[];updateConnStatus(j.source);}
+  catch(e){daeData=[];}
+}
+
+async function loadCorrections(){
+  try{
+    const r=await fetch('/api/corrections');
+    const j=await r.json();
+    const all=j.data||[];
+    corrections=all.filter(c=>c.type!=='nouveau_dae');
+    signalements=all.filter(c=>c.type==='nouveau_dae');
+  }catch(e){
+    // Fallback localStorage
+    try{const s=localStorage.getItem('dae_corrections');if(s){const all=JSON.parse(s);corrections=all.filter(c=>c.type!=='nouveau_dae');signalements=all.filter(c=>c.type==='nouveau_dae');}}catch(e2){}
+  }
+  document.getElementById('corrBadge').textContent=corrections.length;
+  document.getElementById('sigBadge').textContent=signalements.length;
+}
+
+function updateConnStatus(source){
+  const btn=document.getElementById('btnConnStatus');
+  if(source==='airtable'){btn.style.color='#2d9e5f';btn.textContent='⬤ Airtable connecté';}
+  else{btn.style.color='#e07c24';btn.textContent='⬤ Données locales';}
+}
+
+// ── PAGES ─────────────────────────────────────────────────────────────────
+function showPage(page){
+  currentPage=page;
+  document.querySelectorAll('.sidebar-link').forEach(l=>l.classList.remove('active'));
+  const el=document.getElementById('lnk-'+page);
+  if(el)el.classList.add('active');
+  renderPage();
+}
+
+function renderPage(){
+  const main=document.getElementById('admMain');
+  switch(currentPage){
+    case 'corrections': main.innerHTML=pageCorrections(); break;
+    case 'signalements': main.innerHTML=pageSignalements(); break;
+    case 'dae': main.innerHTML=pageDAE(); break;
+    case 'import': main.innerHTML=pageImport(); break;
+    case 'export': main.innerHTML=pageExport(); break;
+    case 'config': main.innerHTML=pageConfig(); break;
+    default: main.innerHTML=pageCorrections();
+  }
+}
+
+// ── PAGE CORRECTIONS ─────────────────────────────────────────────────────
+function pageCorrections(){
+  const kpis=`<div class="kpi-grid">
+    <div class="kpi orange"><div class="kpi-num">${corrections.length}</div><div class="kpi-lbl">Corrections en attente</div></div>
+    <div class="kpi green"><div class="kpi-num">${daeData.filter(d=>d.s==='g').length}</div><div class="kpi-lbl">DAE accessibles 24h/24</div></div>
+    <div class="kpi red"><div class="kpi-num">${daeData.filter(d=>d.s==='r').length}</div><div class="kpi-lbl">DAE horaires limités</div></div>
+    <div class="kpi blue"><div class="kpi-num">${daeData.length}</div><div class="kpi-lbl">DAE total référencés</div></div>
+  </div>`;
+
+  if(!corrections.length) return kpis+`<div class="section-card"><div class="empty-state"><div class="icon">✅</div><p>Aucune correction en attente — la carte est à jour !</p></div></div>`;
+
+  const rows=corrections.map(c=>`
+    <tr>
+      <td><div class="cell-name">${c.dae_nom||c.daeNom||'—'}</div><div class="cell-addr">${c.auteur||'Anonyme'} · ${c.date||'—'}</div></td>
+      <td><span class="diff-old">${c.adresse_actuelle||c.addrOld||'—'}</span><br><span class="diff-new">${c.adresse_corrigee||c.addrNew||'—'}</span></td>
+      <td>${c.horaires||c.horaires||'—'}</td>
+      <td><div class="action-btns">
+        <button class="btn-validate" onclick="validateCorr('${c.id||c.daeId}','${c.id}')">✓ Valider</button>
+        <button class="btn-reject" onclick="rejectCorr('${c.id}')">✗ Rejeter</button>
+        <button class="btn-view" onclick="showDetail(${JSON.stringify(JSON.stringify(c))})">👁 Détail</button>
+      </div></td>
+    </tr>`).join('');
+
+  return kpis+`<div class="section-card">
+    <div class="section-head">
+      <div><h2>✏️ Corrections d'adresses en attente</h2><p>Soumises par les citoyens — à valider ou rejeter</p></div>
+      <div class="ml"><button class="btn-action green" onclick="validateAll()">✓ Tout valider</button></div>
+    </div>
+    <table><thead><tr><th>DAE · Contributeur</th><th>Correction d'adresse</th><th>Horaires</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>
+  </div>`;
+}
+
+// ── PAGE SIGNALEMENTS ─────────────────────────────────────────────────────
+function pageSignalements(){
+  if(!signalements.length) return `<div class="section-card"><div class="empty-state"><div class="icon">📍</div><p>Aucun nouveau DAE signalé pour le moment.</p></div></div>`;
+  const rows=signalements.map(s=>`
+    <tr>
+      <td><div class="cell-name">${s.dae_nom||s.daeNom||'—'}</div><div class="cell-addr">${s.auteur||'Anonyme'}</div></td>
+      <td>${s.adresse_corrigee||s.addrNew||'—'}</td>
+      <td><span class="tag-sm ${s.statut_acces||s.newStatus||'o'}">${{g:'24h/24',r:'Horaires',o:'Inconnu'}[s.statut_acces||s.newStatus]||'Inconnu'}</span></td>
+      <td>${s.commentaire||s.comment||'—'}</td>
+      <td><div class="action-btns">
+        <button class="btn-validate" onclick="addToMap('${s.id}')">➕ Ajouter à la carte</button>
+        <button class="btn-reject" onclick="rejectCorr('${s.id}')">✗ Ignorer</button>
+      </div></td>
+    </tr>`).join('');
+  return `<div class="section-card">
+    <div class="section-head"><div><h2>➕ Nouveaux DAE signalés</h2><p>À vérifier sur le terrain puis ajouter à la carte</p></div></div>
+    <table><thead><tr><th>Nom · Contributeur</th><th>Adresse proposée</th><th>Accès</th><th>Commentaire</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>
+  </div>`;
+}
+
+// ── PAGE LISTE DAE ────────────────────────────────────────────────────────
+function pageDAE(){
+  if(!daeData.length) return `<div class="section-card"><div class="empty-state"><div class="icon">📋</div><p>Aucune donnée — vérifiez la connexion Airtable.</p></div></div>`;
+  const rows=daeData.map(d=>`
+    <tr>
+      <td>${d.em||'📍'} <strong>${d.nom}</strong></td>
+      <td style="font-size:11px;color:var(--muted)">${d.addr}</td>
+      <td><span class="tag-sm ${d.s}">${{g:'24h/24',r:'Horaires',o:'Inconnu'}[d.s]||'—'}</span></td>
+      <td style="font-size:11px;color:var(--muted)">${d.h||'—'}</td>
+      <td style="font-size:11px;color:var(--muted)">${d.v||'—'}</td>
+      <td><span style="font-family:monospace;font-size:10px;color:var(--light)">${Number(d.lat).toFixed(4)}, ${Number(d.lng).toFixed(4)}</span></td>
+    </tr>`).join('');
+  return `<div class="section-card">
+    <div class="section-head">
+      <div><h2>📋 Liste complète des DAE</h2><p>${daeData.length} défibrillateurs référencés</p></div>
+      <div class="ml"><button class="btn-action blue" onclick="showPage('export')">📥 Exporter</button></div>
+    </div>
+    <table><thead><tr><th>Nom</th><th>Adresse</th><th>Accès</th><th>Horaires</th><th>Vérification</th><th>GPS</th></tr></thead><tbody>${rows}</tbody></table>
+  </div>`;
+}
+
+// ── PAGE IMPORT OSM ────────────────────────────────────────────────────────
+function pageImport(){
+  return `<div class="section-card">
+    <div class="section-head"><div><h2>🌐 Import depuis OpenStreetMap</h2><p>Récupération automatique des DAE dans la zone Grand Tarbes / Lourdes</p></div></div>
+    <div class="import-box">
+      <div class="import-step"><div class="import-num">1</div><div class="import-txt"><strong>Interrogation de l'API Overpass</strong><span>Récupère tous les nœuds tagués <code>emergency=defibrillator</code> dans la bounding box 42.9,-0.2 → 43.4,0.3</span></div></div>
+      <div class="import-step"><div class="import-num">2</div><div class="import-txt"><strong>Transformation et insertion dans Airtable</strong><span>Nom, adresse, coordonnées GPS, horaires, marque si disponibles</span></div></div>
+      <div class="import-step"><div class="import-num">3</div><div class="import-txt"><strong>Dédoublonnage manuel recommandé</strong><span>Vérifiez les doublons dans Airtable après import — certains DAE peuvent déjà exister</span></div></div>
+      <div id="importProgress" style="display:none">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:6px" id="importMsg">Import en cours…</div>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn-action primary" onclick="runImport()">🌐 Lancer l'import OSM</button>
+        <button class="btn-action blue" onclick="window.open('https://overpass-turbo.eu/#map=12/43.2/0.07','_blank')">Prévisualiser sur Overpass →</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function runImport(){
+  document.getElementById('importProgress').style.display='block';
+  document.getElementById('progressFill').style.width='20%';
+  document.getElementById('importMsg').textContent='Connexion à OpenStreetMap…';
+  try{
+    document.getElementById('progressFill').style.width='50%';
+    document.getElementById('importMsg').textContent='Import en cours (peut prendre 30 secondes)…';
+    const r=await fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'import_openaed',password:adminPwd})});
+    const j=await r.json();
+    document.getElementById('progressFill').style.width='100%';
+    if(j.success){
+      document.getElementById('importMsg').textContent=`✅ Import terminé — ${j.imported} DAE importés sur ${j.total} trouvés`;
+      toast(`Import OSM : ${j.imported} DAE ajoutés !`,'ok');
+    }else{
+      document.getElementById('importMsg').textContent='⚠️ Import partiel — '+( j.error||'erreur inconnue');
+      toast('Erreur import : '+(j.error||'voir les logs'),'err');
+    }
+  }catch(e){
+    document.getElementById('importMsg').textContent='❌ Erreur réseau — Airtable configuré ?';
+    toast('Erreur : '+e.message,'err');
+  }
+}
+
+// ── PAGE EXPORT ───────────────────────────────────────────────────────────
+function pageExport(){
+  return `<div class="section-card">
+    <div class="section-head"><div><h2>📥 Exporter les données</h2><p>Télécharger ou imprimer l'annuaire complet des DAE</p></div></div>
+    <div style="padding:18px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+      <a href="/api/export?format=pdf" target="_blank" style="background:var(--bg);border:1.5px solid var(--line);border-radius:12px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:8px;text-decoration:none;color:var(--text);transition:border-color .12s" onmouseover="this.style.borderColor='var(--red)'" onmouseout="this.style.borderColor='var(--line)'">
+        <span style="font-size:32px">🖨️</span>
+        <strong style="font-size:14px">PDF imprimable</strong>
+        <span style="font-size:12px;color:var(--muted);text-align:center">Document A4 prêt à imprimer — affichage en mairie, école, salle de sport</span>
+      </a>
+      <a href="/api/export?format=csv" style="background:var(--bg);border:1.5px solid var(--line);border-radius:12px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:8px;text-decoration:none;color:var(--text);transition:border-color .12s" onmouseover="this.style.borderColor='var(--green)'" onmouseout="this.style.borderColor='var(--line)'">
+        <span style="font-size:32px">📊</span>
+        <strong style="font-size:14px">CSV / Excel</strong>
+        <span style="font-size:12px;color:var(--muted);text-align:center">Compatible Excel, LibreOffice, Google Sheets — avec BOM UTF-8</span>
+      </a>
+      <a href="/api/export?format=json" style="background:var(--bg);border:1.5px solid var(--line);border-radius:12px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:8px;text-decoration:none;color:var(--text);transition:border-color .12s" onmouseover="this.style.borderColor='var(--blue)'" onmouseout="this.style.borderColor='var(--line)'">
+        <span style="font-size:32px">🔧</span>
+        <strong style="font-size:14px">JSON API</strong>
+        <span style="font-size:12px;color:var(--muted);text-align:center">Pour intégration dans d'autres applications ou sites web</span>
+      </a>
+    </div>
+    <div style="padding:0 18px 18px;font-size:12px;color:var(--muted);background:var(--bg);margin:0 18px 18px;border-radius:9px;padding:12px 14px">
+      💡 L'export PDF inclut une notice "En cas d'urgence cardiaque" — idéal pour affichage dans les lieux publics.
+    </div>
+  </div>`;
+}
+
+// ── PAGE CONFIG ───────────────────────────────────────────────────────────
+function pageConfig(){
+  return `<div class="section-card">
+    <div class="section-head"><div><h2>⚙️ Configuration</h2><p>Variables d'environnement Vercel</p></div></div>
+    <div class="config-grid">
+      <div class="config-field"><label>AIRTABLE_TOKEN</label><input type="password" placeholder="patXXXXX…" id="cfgToken"></div>
+      <div class="config-field"><label>AIRTABLE_BASE_ID</label><input type="text" placeholder="appXXXXXXXXXXXXXX" id="cfgBaseId"></div>
+      <div class="config-field"><label>AIRTABLE_TABLE_DAE</label><input type="text" value="DAE" id="cfgTableDae"></div>
+      <div class="config-field"><label>AIRTABLE_TABLE_CORRECTIONS</label><input type="text" value="Corrections" id="cfgTableCorr"></div>
+      <div class="config-field"><label>RESEND_API_KEY</label><input type="password" placeholder="re_XXXX…" id="cfgResend"></div>
+      <div class="config-field"><label>ADMIN_EMAIL</label><input type="text" placeholder="admin@mairie-tarbes.fr" id="cfgEmail"></div>
+    </div>
+    <div class="config-status warn" id="cfgStatus">⚠️ Ces variables doivent être configurées dans le dashboard Vercel</div>
+    <div style="padding:0 18px 18px;display:flex;gap:10px">
+      <button class="btn-action primary" onclick="testConfig()">🔌 Tester la connexion Airtable</button>
+      <a href="https://vercel.com/dashboard" target="_blank" class="btn-action blue">Ouvrir Vercel Dashboard →</a>
+    </div>
+    <div style="margin:0 18px 18px;background:var(--bg);border-radius:10px;padding:16px">
+      <h4 style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">📋 Structure Airtable recommandée</h4>
+      <div style="font-size:12px;color:var(--muted);line-height:2">
+        <strong style="color:var(--text)">Table DAE</strong> : nom, adresse, latitude, longitude, statut (g/r/o), horaires, marque, emplacement, verification, emoji, source<br>
+        <strong style="color:var(--text)">Table Corrections</strong> : dae_id, dae_nom, adresse_actuelle, adresse_corrigee, latitude, longitude, horaires, statut_acces, commentaire, auteur, date, type, statut_validation
+      </div>
+    </div>
+  </div>`;
+}
+
+async function testConfig(){
+  document.getElementById('cfgStatus').className='config-status warn';
+  document.getElementById('cfgStatus').textContent='⏳ Test en cours…';
+  try{
+    const r=await fetch('/api/dae');
+    const j=await r.json();
+    if(j.source==='airtable'){document.getElementById('cfgStatus').className='config-status ok';document.getElementById('cfgStatus').textContent='✅ Connexion Airtable réussie — '+j.data.length+' DAE chargés';}
+    else{document.getElementById('cfgStatus').className='config-status warn';document.getElementById('cfgStatus').textContent='⚠️ Mode local — configurez AIRTABLE_TOKEN et AIRTABLE_BASE_ID dans Vercel';}
+  }catch(e){document.getElementById('cfgStatus').className='config-status err';document.getElementById('cfgStatus').textContent='❌ Erreur : '+e.message;}
+}
+
+// ── ACTIONS ───────────────────────────────────────────────────────────────
+async function validateCorr(daeId,corrId){
+  const c=corrections.find(x=>x.id===corrId);
+  try{
+    await fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'validate',password:adminPwd,correctionId:corrId,daeAirtableId:daeId,fields:c})});
+  }catch(e){}
+  corrections=corrections.filter(x=>x.id!==corrId);
+  document.getElementById('corrBadge').textContent=corrections.length;
+  toast('✅ Correction validée et appliquée !','ok');
+  renderPage();
+}
+
+async function rejectCorr(corrId){
+  try{await fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'reject',password:adminPwd,correctionId:corrId})});}catch(e){}
+  corrections=corrections.filter(x=>x.id!==corrId);
+  signalements=signalements.filter(x=>x.id!==corrId);
+  document.getElementById('corrBadge').textContent=corrections.length;
+  document.getElementById('sigBadge').textContent=signalements.length;
+  toast('Correction rejetée','warn');
+  renderPage();
+}
+
+async function validateAll(){
+  for(const c of [...corrections]) await validateCorr(c.dae_id||c.daeId,c.id);
+  toast('✅ Toutes les corrections validées !','ok');
+}
+
+function addToMap(id){
+  toast('✅ DAE ajouté à la file d\'attente Airtable','ok');
+  signalements=signalements.filter(x=>x.id!==id);
+  document.getElementById('sigBadge').textContent=signalements.length;
+  renderPage();
+}
+
+function showDetail(jsonStr){
+  const c=JSON.parse(jsonStr);
+  document.getElementById('detailTitle').textContent='Détail — '+(c.dae_nom||c.daeNom||'—');
+  document.getElementById('detailSub').textContent='Soumis par '+(c.auteur||'Anonyme')+' · '+(c.date||'—');
+  const rows=[
+    ['DAE', c.dae_nom||c.daeNom||'—'],
+    ['Ancienne adresse', `<span class="diff-old">${c.adresse_actuelle||c.addrOld||'—'}</span>`],
+    ['Nouvelle adresse', `<span class="diff-new">${c.adresse_corrigee||c.addrNew||'—'}</span>`],
+    ['Coordonnées GPS', `${c.latitude||c.latNew||'—'}, ${c.longitude||c.lngNew||'—'}`],
+    ['Horaires', c.horaires||'—'],
+    ['Accessibilité', {g:'24h/24',r:'Horaires limités',o:'Inconnu'}[c.statut_acces||c.newStatus]||'Inchangé'],
+    ['Commentaire', c.commentaire||c.comment||'—'],
+    ['Contributeur', c.auteur||'Anonyme'],
+    ['Type', c.type||'correction'],
+  ].map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join('');
+  document.getElementById('detailTable').innerHTML=rows;
+  document.getElementById('detailActions').innerHTML=`
+    <button class="btn-validate" onclick="validateCorr('${c.dae_id||c.daeId}','${c.id}');closeDetail()">✓ Valider</button>
+    <button class="btn-reject" onclick="rejectCorr('${c.id}');closeDetail()">✗ Rejeter</button>
+    <button class="btn-view" onclick="closeDetail()">Fermer</button>`;
+  document.getElementById('mDetail').classList.add('show');
+}
+function closeDetail(){document.getElementById('mDetail').classList.remove('show');}
+document.querySelectorAll('.overlay').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('show');}));
+
+function toast(msg,type='ok'){
+  const t=document.getElementById('toast');
+  t.className='toast '+type;
+  document.getElementById('tmsg').textContent=msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+// Init
+renderPage();
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "dae-grand-tarbes",
+  "version": "1.0.0",
+  "description": "Carte collaborative des défibrillateurs DAE — Grand Tarbes / Lourdes",
+  "private": true,
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "devDependencies": {
+    "vercel": "^33.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
