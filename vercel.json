@@ -1,7 +1,1 @@
-{
-  "version": 2,
-  "rewrites": [
-    { "source": "/admin", "destination": "/api/admin-page" },
-    { "source": "/admin/", "destination": "/api/admin-page" }
-  ]
-}
+{"version":2,"builds":[{"src":"api/*.js","use":"@vercel/node"},{"src":"index.html","use":"@vercel/static"},{"src":"admin.html","use":"@vercel/static"},{"src":"admin/index.html","use":"@vercel/static"}],"routes":[{"src":"/api/(.*)","dest":"/api/$1"},{"src":"/admin","dest":"/api/admin-page"},{"src":"/admin/","dest":"/api/admin-page"},{"src":"/","dest":"/index.html"}]}
