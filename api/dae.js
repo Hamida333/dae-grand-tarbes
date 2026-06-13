@@ -29,6 +29,7 @@ export default async function handler(req, res) {
 
   // Sans Airtable → données locales
   if (!AIRTABLE_TOKEN || !AIRTABLE_BASE_ID) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
     return res.status(200).json({ source: 'local', data: FALLBACK_DATA });
   }
 
@@ -50,6 +51,7 @@ export default async function handler(req, res) {
       loc:  rec.fields.emplacement || '',
       v:    rec.fields.verification || 'Non vérifié',
     }));
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
     return res.status(200).json({ source: 'airtable', data });
   } catch (err) {
     console.error('Airtable DAE error:', err.message);
